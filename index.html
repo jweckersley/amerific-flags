@@ -68,7 +68,7 @@
     .card-actions button { flex: 1; padding: 8px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-edit  { background: var(--navy); color: white; }
     .btn-del   { background: #fef0f0; color: var(--red); }
-    .btn-txt   { background: #edf7ed; color: #2e7d32; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+    .btn-txt   { background: #edf7ed; color: #2e7d32; text-decoration: none; display: flex; align-items: center; justify-content: center; flex: 1; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: 600; }
     .btn-map   { background: #e8f0fe; color: #1a56db; text-decoration: none; display: flex; align-items: center; justify-content: center; }
 
     /* ── Badges ── */
@@ -586,11 +586,11 @@ function deleteCustomer() {
 function smsUrl(phone, name, holidayKey) {
   const h = holidayKey ? HOLIDAYS.find(x => x.key === holidayKey) : null;
   const firstName = String(name || '').split(' ')[0] || 'there';
-  const about = h ? `for ${h.name}` : 'for the upcoming holiday';
-  const msg = `Hi ${firstName}, your Amerific Flags flag will be placed ${about}! Thanks for your support. 🇺🇸 — Amerific Flags`;
+  const about = h ? h.name : 'upcoming holiday';
+  const msg = `Hi ${firstName}, your flag goes up for ${about}! -Amerific Flags`;
   const digits = String(phone || '').replace(/\D/g, '');
   const num = digits.length === 10 ? '+1' + digits : digits.length === 11 ? '+' + digits : digits;
-  return `sms:${num}&body=${encodeURIComponent(msg)}`;
+  return `sms:${num}?body=${encodeURIComponent(msg)}`;
 }
 
 // ============================================================
