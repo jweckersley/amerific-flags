@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#002868">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Amerific Flags">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <title>Amerific Flags</title>
+  <style>
+    :root {
+      --navy: #002868;
+      --red: #BF0A30;
+      --white: #ffffff;
+      --gray-50: #f7f8fa;
+      --gray-100: #efefef;
+      --gray-200: #ddd;
+      --gray-400: #999;
+      --gray-700: #555;
+      --text: #1a1a1a;
+      --radius: 14px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.10);
+      --tab-h: 68px;
+      --header-h: 56px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; }
+    body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--text); overscroll-behavior: none; }
+
+    /* ── Layout ── */
+    #app { display: flex; flex-direction: column; height: 100dvh; }
+    #header { background: var(--navy); color: white; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: var(--header-h); flex-shrink: 0; }
+    #header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #tab-bar { background: white; border-top: 1px solid var(--gray-200); display: flex; height: var(--tab-h); flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom, 0); }
+
+    /* ── Tab bar ── */
+    .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: none; cursor: pointer; color: var(--gray-400); font-size: 11px; font-weight: 600; transition: color 0.15s; }
+    .tab-btn.active { color: var(--navy); }
+    .tab-icon { font-size: 24px; line-height: 1; }
+
+    /* ── Screens ── */
+    .screen { display: none; padding: 12px 14px; padding-bottom: 80px; }
+    .screen.active { display: block; }
+
+    /* ── Search bar ── */
+    .search-wrap { position: sticky; top: 0; background: var(--gray-50); padding: 8px 0 6px; z-index: 10; }
+    .search-wrap input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--gray-200); border-radius: 12px; font-size: 15px; background: white; outline: none; transition: border-color 0.15s; }
+    .search-wrap input:focus { border-color: var(--navy); }
+
+    /* ── Filter chips ── */
+    .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--gray-200); background: white; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; color: var(--gray-700); transition: all 0.15s; }
+    .chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+    /* ── Customer card ── */
+    .card { background: white; border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; transition: opacity 0.15s; }
+    .card:active { opacity: 0.85; }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .card-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+    .card-address { color: var(--gray-700); font-size: 13px; margin-bottom: 4px; }
+    .card-phone { font-size: 13px; color: var(--gray-700); }
+    .card-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-100); }
+    .card-actions button { flex: 1; padding: 8px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-edit  { background: var(--navy); color: white; }
+    .btn-del   { background: #fef0f0; color: var(--red); }
+    .btn-txt   { background: #edf7ed; color: #2e7d32; }
+
+    /* ── Badges ── */
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; }
+    .badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .b-stripe   { background: #ede9ff; color: #5b21b6; }
+    .b-cash     { background: #e7f7ee; color: #15803d; }
+    .b-ooa      { background: #fff3e0; color: #c05621; }
+    .b-inactive { background: var(--gray-100); color: var(--gray-400); }
+
+    /* ── FAB ── */
+    #fab { position: fixed; bottom: calc(var(--tab-h) + 16px); right: 16px; width: 58px; height: 58px; border-radius: 50%; background: var(--red); color: white; border: none; font-size: 30px; cursor: pointer; box-shadow: 0 4px 16px rgba(191,10,48,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; display: none; }
+
+    /* ── Route ── */
+    .route-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+    .route-controls select { flex: 1; padding: 10px 12px; border: 1.5px solid var(--gray-200); border-radius: 12px; font-size: 14px; background: white; cursor: pointer; }
+    .progress-track { background: var(--gray-100); border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 4px; }
+    .progress-fill  { background: var(--navy); height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-label { font-size: 13px; color: var(--gray-700); margin-bottom: 12px; }
+
+    .route-row { background: white; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); transition: opacity 0.2s; }
+    .route-row.done { opacity: 0.45; }
+    .route-row input[type=checkbox] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--navy); cursor: pointer; }
+    .route-info { flex: 1; min-width: 0; }
+    .route-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .route-addr { font-size: 12px; color: var(--gray-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .route-txt  { border: none; background: #edf7ed; color: #2e7d32; padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+
+    /* ── Settings ── */
+    .section-label { font-size: 12px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .field input, .field textarea, .field select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 14px; font-family: inherit; background: white; outline: none; transition: border-color 0.15s; }
+    .field input:focus, .field textarea:focus { border-color: var(--navy); }
+    .field textarea { height: 64px; resize: none; }
+    .field select { cursor: pointer; }
+
+    .btn { display: block; width: 100%; padding: 13px; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; transition: opacity 0.15s; }
+    .btn:active { opacity: 0.8; }
+    .btn-navy   { background: var(--navy); color: white; }
+    .btn-red    { background: var(--red); color: white; }
+    .btn-gray   { background: var(--gray-100); color: var(--text); }
+    .btn-stripe { background: #635BFF; color: white; }
+    .btn-sm     { padding: 9px; font-size: 14px; }
+
+    .divider { height: 1px; background: var(--gray-100); margin: 18px 0; }
+    .section-card { background: white; border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .hint { font-size: 12px; color: var(--gray-400); margin-top: 6px; line-height: 1.4; }
+
+    /* ── Modal ── */
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: none; align-items: flex-end; }
+    #overlay.open { display: flex; }
+    #modal { background: white; border-radius: 22px 22px 0 0; width: 100%; max-height: 92dvh; overflow-y: auto; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0)); }
+    #modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+    .modal-row { display: flex; gap: 8px; }
+    .modal-row .field { flex: 1; }
+    .modal-footer { display: flex; gap: 8px; margin-top: 16px; }
+    .modal-footer .btn { flex: 1; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .toggle-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--navy); flex-shrink: 0; }
+    .toggle-row label { font-size: 14px; font-weight: 500; cursor: pointer; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: calc(var(--tab-h) + 80px); left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 22px; border-radius: 22px; font-size: 14px; font-weight: 500; z-index: 300; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; max-width: 90vw; text-align: center; }
+    #toast.show { opacity: 1; }
+
+    /* ── Spinner ── */
+    #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.75); display: none; align-items: center; justify-content: center; z-index: 400; }
+    #loader.show { display: flex; }
+    .spin { width: 42px; height: 42px; border: 4px solid var(--gray-200); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 56px 24px; color: var(--gray-400); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty p { font-size: 15px; line-height: 1.5; }
+    .empty b { color: var(--navy); }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <h1>🇺🇸 Amerific Flags</h1>
+    <span id="header-count" style="font-size:13px;opacity:0.7"></span>
+  </div>
+
+  <div id="main">
+
+    <!-- ── Customers ── -->
+    <div class="screen active" id="screen-customers">
+      <div class="search-wrap">
+        <input type="search" id="search" placeholder="Search by name, address, or phone…" autocomplete="off">
+      </div>
+      <div class="chips" id="filter-chips">
+        <button class="chip active" data-f="all">All</button>
+        <button class="chip" data-f="active">Active</button>
+        <button class="chip" data-f="ooa">Out of Area</button>
+        <button class="chip" data-f="cash">Cash</button>
+        <button class="chip" data-f="stripe">Stripe</button>
+        <button class="chip" data-f="inactive">Inactive</button>
+      </div>
+      <div id="customer-list"></div>
+    </div>
+
+    <!-- ── Route ── -->
+    <div class="screen" id="screen-route">
+      <div class="route-controls">
+        <select id="holiday-sel"></select>
+        <select id="year-sel" style="max-width:90px"></select>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0"></div></div>
+      <div class="progress-label" id="prog-label">0 of 0 complete</div>
+      <div id="route-list"></div>
+    </div>
+
+    <!-- ── Settings ── -->
+    <div class="screen" id="screen-settings">
+
+      <div class="section-card">
+        <div class="section-label">Connection</div>
+        <div class="field">
+          <label>Apps Script URL</label>
+          <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/…/exec">
+        </div>
+        <div class="field">
+          <label>Access Token</label>
+          <input type="text" id="cfg-token" placeholder="your-secret-token" autocomplete="off">
+        </div>
+        <button class="btn btn-navy" onclick="saveConfig()">Save &amp; Test Connection</button>
+      </div>
+
+      <div class="section-card">
+        <div class="section-label">Stripe Import</div>
+        <p class="hint" style="margin-bottom:12px">Your Stripe secret key lives in Apps Script — never in this app. Make sure STRIPE_KEY is set in your Script Properties before syncing.</p>
+        <button class="btn btn-stripe" onclick="doSyncStripe()">Sync Customers from Stripe</button>
+        <p id="sync-info" class="hint" style="margin-top:8px;text-align:center"></p>
+      </div>
+
+      <div class="section-card">
+        <div class="section-label">In-Area ZIP Codes</div>
+        <div class="field">
+          <label>Draper ZIP codes (comma-separated)</label>
+          <input type="text" id="cfg-zips" placeholder="84020">
+          <p class="hint">Customers with a ZIP not in this list are flagged for review.</p>
+        </div>
+        <button class="btn btn-gray btn-sm" onclick="saveZips()">Save ZIP Codes</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="tab-bar">
+    <button class="tab-btn active" data-tab="customers" onclick="switchTab('customers')">
+      <span class="tab-icon">👥</span>Customers
+    </button>
+    <button class="tab-btn" data-tab="route" onclick="switchTab('route')">
+      <span class="tab-icon">🗺️</span>Route
+    </button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
+      <span class="tab-icon">⚙️</span>Settings
+    </button>
+  </div>
+</div>
+
+<button id="fab" onclick="openModal(null)">+</button>
+
+<!-- ── Customer Modal ── -->
+<div id="overlay" onclick="overlayClick(event)">
+  <div id="modal">
+    <h2 id="modal-title">Add Customer</h2>
+
+    <div class="field">
+      <label>Name *</label>
+      <input type="text" id="f-name" placeholder="Full name">
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input type="text" id="f-address" placeholder="123 Main St">
+    </div>
+    <div class="modal-row">
+      <div class="field">
+        <label>ZIP Code</label>
+        <input type="text" id="f-zip" placeholder="84020" maxlength="10" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Payment</label>
+        <select id="f-pay">
+          <option value="cash">Cash</option>
+          <option value="stripe">Stripe</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input type="tel" id="f-phone" placeholder="(801) 555-0100">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="f-email" placeholder="email@example.com">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="f-notes" placeholder="Gate code, dog warning, special instructions…"></textarea>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="f-active" checked>
+      <label for="f-active">Active customer</label>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="f-ooa">
+      <label for="f-ooa">Flag for review (out of area)</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-navy" onclick="saveForm()">Save</button>
+    </div>
+    <div id="del-wrap" style="margin-top:10px;display:none">
+      <button class="btn btn-red" onclick="deleteCustomer()">Delete Customer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loader"><div class="spin"></div></div>
+
+<script>
+// ============================================================
+// Config — persisted in localStorage
+// ============================================================
+const CFG = {
+  get url()   { return localStorage.getItem('af_url')   || ''; },
+  get token() { return localStorage.getItem('af_token') || ''; },
+  get zips()  { return (localStorage.getItem('af_zips') || '84020').split(',').map(z => z.trim()).filter(Boolean); },
+  set url(v)   { localStorage.setItem('af_url',   v.trim()); },
+  set token(v) { localStorage.setItem('af_token', v.trim()); },
+  set zips(v)  { localStorage.setItem('af_zips',  v); },
+};
+
+// Pull token/url from query string on first visit
+(() => {
+  const p = new URLSearchParams(location.search);
+  if (p.get('url'))   CFG.url   = p.get('url');
+  if (p.get('token')) CFG.token = p.get('token');
+})();
+
+// ============================================================
+// Holidays
+// ============================================================
+const HOLIDAYS = [
+  { key: 'memorial-day', name: 'Memorial Day',   date: y => lastWeekday(y, 4, 1) },
+  { key: 'flag-day',     name: 'Flag Day',        date: y => new Date(y, 5, 14) },
+  { key: 'july-4',       name: '4th of July',     date: y => new Date(y, 6, 4) },
+  { key: 'pioneer-day',  name: 'Pioneer Day',     date: y => new Date(y, 6, 24) },
+  { key: 'labor-day',    name: 'Labor Day',        date: y => firstWeekday(y, 8, 1) },
+  { key: 'sept-11',      name: 'September 11th',  date: y => new Date(y, 8, 11) },
+  { key: 'veterans-day', name: 'Veterans Day',    date: y => new Date(y, 10, 11) },
+];
+
+function firstWeekday(year, month, dow) {
+  const d = new Date(year, month, 1);
+  while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+  return d;
+}
+function lastWeekday(year, month, dow) {
+  const d = new Date(year, month + 1, 0); // last day of month
+  while (d.getDay() !== dow) d.setDate(d.getDate() - 1);
+  return d;
+}
+function upcomingHoliday() {
+  const now = new Date();
+  const yr = now.getFullYear();
+  const sorted = HOLIDAYS.map(h => ({ ...h, d: h.date(yr) }))
+    .filter(h => h.d >= now).sort((a,b) => a.d - b.d);
+  return sorted.length ? sorted[0] : HOLIDAYS[HOLIDAYS.length - 1];
+}
+
+// ============================================================
+// State
+// ============================================================
+let S = {
+  customers:   [],
+  completions: [],
+  tab:    'customers',
+  filter: 'all',
+  search: '',
+  editId: null,
+  holiday: null,
+  year:   new Date().getFullYear(),
+  routeInit: false,
+};
+
+// ============================================================
+// API
+// ============================================================
+async function api(action, data = null) {
+  if (!CFG.url) throw new Error('Apps Script URL not configured — go to Settings.');
+  const u = new URL(CFG.url);
+  u.searchParams.set('action', action);
+  if (CFG.token) u.searchParams.set('token', CFG.token);
+  if (data !== null) u.searchParams.set('data', JSON.stringify(data));
+  const resp = await fetch(u.toString(), { redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  let result;
+  try { result = await resp.json(); } catch { throw new Error('Invalid response — check Apps Script URL.'); }
+  if (result && result.error) throw new Error(result.error);
+  return result;
+}
+
+// ============================================================
+// UI helpers
+// ============================================================
+function loading(on) { document.getElementById('loader').classList.toggle('show', on); }
+
+let toastTimer;
+function toast(msg, ms = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function bool(v) { return v === true || v === 'true' || v === 'TRUE'; }
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// Tab switching
+// ============================================================
+function switchTab(tab) {
+  S.tab = tab;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('fab').style.display = tab === 'customers' ? 'flex' : 'none';
+  if (tab === 'customers') renderCustomers();
+  if (tab === 'route')     initRoute();
+  if (tab === 'settings')  loadSettings();
+}
+
+// ============================================================
+// Customers
+// ============================================================
+async function loadCustomers() {
+  loading(true);
+  try {
+    S.customers = await api('getCustomers');
+    renderCustomers();
+  } catch(e) { toast('Error: ' + e.message); }
+  finally { loading(false); }
+}
+
+function visibleCustomers() {
+  let list = S.customers;
+  if (S.search) {
+    const q = S.search.toLowerCase();
+    list = list.filter(c =>
+      (c.name    || '').toLowerCase().includes(q) ||
+      (c.address || '').toLowerCase().includes(q) ||
+      (c.phone   || '').replace(/\D/g,'').includes(q.replace(/\D/g,''))
+    );
+  }
+  switch (S.filter) {
+    case 'active':   list = list.filter(c => bool(c.active));  break;
+    case 'inactive': list = list.filter(c => !bool(c.active)); break;
+    case 'ooa':      list = list.filter(c => bool(c.outOfArea)); break;
+    case 'cash':     list = list.filter(c => c.paymentMethod === 'cash'); break;
+    case 'stripe':   list = list.filter(c => c.paymentMethod === 'stripe'); break;
+  }
+  return list.slice().sort((a,b) => (a.name||'').localeCompare(b.name||''));
+}
+
+function renderCustomers() {
+  const list = visibleCustomers();
+  const el = document.getElementById('customer-list');
+  document.getElementById('header-count').textContent =
+    S.customers.length ? S.customers.length + ' customers' : '';
+
+  if (!CFG.url) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚙️</div><p>Set your <b>Apps Script URL</b> in Settings to get started.</p></div>`;
+    return;
+  }
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>No customers match your search.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const active = bool(c.active);
+    const ooa    = bool(c.outOfArea);
+    return `
+      <div class="card" onclick="toggleCard('${c.id}')">
+        <div class="card-header">
+          <span class="card-name">${esc(c.name)}</span>
+          <div class="badges">
+            ${c.paymentMethod === 'stripe' ? '<span class="badge b-stripe">Stripe</span>' : '<span class="badge b-cash">Cash</span>'}
+            ${ooa    ? '<span class="badge b-ooa">⚠ Out of Area</span>' : ''}
+            ${!active? '<span class="badge b-inactive">Inactive</span>' : ''}
+          </div>
+        </div>
+        ${c.address ? `<div class="card-address">${esc(c.address)}${c.zip ? ', ' + esc(c.zip) : ''}</div>` : ''}
+        ${c.phone   ? `<div class="card-phone">${esc(c.phone)}</div>` : ''}
+        <div id="ca-${c.id}" style="display:none">
+          <div class="card-actions">
+            <button class="btn-edit" onclick="openModal('${c.id}');event.stopPropagation()">Edit</button>
+            ${c.phone ? `<button class="btn-txt" onclick="textMsg('${c.id}');event.stopPropagation()">✉ Text</button>` : ''}
+            <button class="btn-del" onclick="confirmDelete('${c.id}');event.stopPropagation()">Delete</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  const el = document.getElementById('ca-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============================================================
+// Customer modal
+// ============================================================
+function openModal(id) {
+  const c = id ? S.customers.find(x => x.id === id) : null;
+  S.editId = id || null;
+  document.getElementById('modal-title').textContent = c ? 'Edit Customer' : 'Add Customer';
+  document.getElementById('f-name').value    = c?.name    || '';
+  document.getElementById('f-address').value = c?.address || '';
+  document.getElementById('f-zip').value     = c?.zip     || '';
+  document.getElementById('f-pay').value     = c?.paymentMethod || 'cash';
+  document.getElementById('f-phone').value   = c?.phone   || '';
+  document.getElementById('f-email').value   = c?.email   || '';
+  document.getElementById('f-notes').value   = c?.notes   || '';
+  document.getElementById('f-active').checked = !c || bool(c.active);
+  document.getElementById('f-ooa').checked    = c ? bool(c.outOfArea) : false;
+  document.getElementById('del-wrap').style.display = c ? 'block' : 'none';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+async function saveForm() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { toast('Name is required'); return; }
+
+  const zip = document.getElementById('f-zip').value.trim();
+  const ooaByZip = zip && !CFG.zips.includes(zip);
+  const ooaManual = document.getElementById('f-ooa').checked;
+
+  const existing = S.editId ? S.customers.find(c => c.id === S.editId) : null;
+  const customer = {
+    id:            S.editId || undefined,
+    name,
+    address:       document.getElementById('f-address').value.trim(),
+    zip,
+    phone:         document.getElementById('f-phone').value.trim(),
+    email:         document.getElementById('f-email').value.trim(),
+    paymentMethod: document.getElementById('f-pay').value,
+    stripeId:      existing?.stripeId || '',
+    active:        document.getElementById('f-active').checked,
+    notes:         document.getElementById('f-notes').value.trim(),
+    outOfArea:     ooaByZip || ooaManual,
+  };
+  if (!customer.id) delete customer.id;
+
+  loading(true);
+  try {
+    await api('saveCustomer', customer);
+    closeModal();
+    await loadCustomers();
+    toast(S.editId ? 'Customer updated.' : 'Customer added.');
+  } catch(e) { toast('Error: ' + e.message); }
+  finally { loading(false); }
+}
+
+async function confirmDelete(id) {
+  const c = S.customers.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+  loading(true);
+  try {
+    await api('deleteCustomer', { id });
+    await loadCustomers();
+    toast('Customer deleted.');
+  } catch(e) { toast('Error: ' + e.message); }
+  finally { loading(false); }
+}
+
+// Called from modal delete button
+function deleteCustomer() {
+  if (S.editId) { closeModal(); confirmDelete(S.editId); }
+}
+
+// ============================================================
+// Text messaging
+// ============================================================
+function textMsg(id, holidayKey) {
+  const c = S.customers.find(x => x.id === id);
+  if (!c || !c.phone) return;
+  const h = holidayKey ? HOLIDAYS.find(x => x.key === holidayKey) : null;
+  const firstName = (c.name || '').split(' ')[0] || 'there';
+  const about = h ? `for ${h.name}` : 'for the upcoming holiday';
+  const msg = `Hi ${firstName}, your Amerific Flags flag will be placed ${about}! Thanks for your support. 🇺🇸 — Amerific Flags`;
+  const phone = c.phone.replace(/\D/g, '');
+  const num = phone.length === 10 ? '+1' + phone : phone.length === 11 ? '+' + phone : phone;
+  window.open(`sms:${num}&body=${encodeURIComponent(msg)}`);
+}
+
+// ============================================================
+// Route
+// ============================================================
+function initRoute() {
+  const hSel = document.getElementById('holiday-sel');
+  const ySel = document.getElementById('year-sel');
+
+  if (!S.routeInit) {
+    HOLIDAYS.forEach(h => {
+      const o = document.createElement('option');
+      o.value = h.key; o.textContent = h.name;
+      hSel.appendChild(o);
+    });
+    const upcoming = upcomingHoliday();
+    hSel.value = upcoming.key;
+    S.holiday = upcoming.key;
+
+    const yr = new Date().getFullYear();
+    for (let y = yr - 1; y <= yr + 1; y++) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      ySel.appendChild(o);
+    }
+    ySel.value = yr;
+    S.year = yr;
+
+    hSel.addEventListener('change', () => { S.holiday = hSel.value; renderRoute(); });
+    ySel.addEventListener('change', async () => {
+      S.year = parseInt(ySel.value);
+      loading(true);
+      try { S.completions = await api('getCompletions'); } catch(e) { toast('Error: ' + e.message); }
+      finally { loading(false); }
+      renderRoute();
+    });
+    S.routeInit = true;
+  }
+  renderRoute();
+}
+
+function activeCustomers() {
+  return S.customers
+    .filter(c => bool(c.active))
+    .slice().sort((a,b) => (a.address||'').localeCompare(b.address||''));
+}
+
+function isDone(customerId) {
+  return S.completions.some(c =>
+    c.customerId === customerId &&
+    c.holiday === S.holiday &&
+    String(c.year) === String(S.year) &&
+    bool(c.done)
+  );
+}
+
+function renderRoute() {
+  const customers = activeCustomers();
+  const doneCount = customers.filter(c => isDone(c.id)).length;
+  const pct = customers.length ? (doneCount / customers.length * 100) : 0;
+
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `${doneCount} of ${customers.length} complete`;
+
+  const el = document.getElementById('route-list');
+  if (!CFG.url) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚙️</div><p>Configure in <b>Settings</b> to get started.</p></div>`;
+    return;
+  }
+  if (!customers.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No active customers yet.<br>Add some in the Customers tab.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = customers.map(c => {
+    const done = isDone(c.id);
+    return `
+      <div class="route-row${done ? ' done' : ''}">
+        <input type="checkbox" ${done ? 'checked' : ''} onchange="toggleDone('${c.id}', this.checked)">
+        <div class="route-info">
+          <div class="route-name">${esc(c.name)}</div>
+          <div class="route-addr">${esc(c.address)}</div>
+        </div>
+        ${c.phone ? `<button class="route-txt" onclick="textMsg('${c.id}','${S.holiday}')">Text</button>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function toggleDone(customerId, done) {
+  // Optimistic update
+  const existing = S.completions.find(c =>
+    c.customerId === customerId &&
+    c.holiday === S.holiday &&
+    String(c.year) === String(S.year)
+  );
+  if (existing) { existing.done = done; }
+  else { S.completions.push({ customerId, holiday: S.holiday, year: S.year, done }); }
+  renderRoute();
+
+  try {
+    await api('setCompletion', { customerId, holiday: S.holiday, year: S.year, done });
+  } catch(e) {
+    toast('Save failed: ' + e.message);
+    // revert
+    if (existing) existing.done = !done;
+    else S.completions = S.completions.filter(c => !(c.customerId === customerId && c.holiday === S.holiday && String(c.year) === String(S.year)));
+    renderRoute();
+  }
+}
+
+// ============================================================
+// Settings
+// ============================================================
+function loadSettings() {
+  document.getElementById('cfg-url').value   = CFG.url;
+  document.getElementById('cfg-token').value = CFG.token;
+  document.getElementById('cfg-zips').value  = CFG.zips.join(', ');
+  const ls = localStorage.getItem('af_sync');
+  if (ls) document.getElementById('sync-info').textContent = 'Last sync: ' + new Date(ls).toLocaleString();
+}
+
+async function saveConfig() {
+  CFG.url   = document.getElementById('cfg-url').value;
+  CFG.token = document.getElementById('cfg-token').value;
+  if (!CFG.url) { toast('Enter your Apps Script URL.'); return; }
+  loading(true);
+  try {
+    await api('ping');
+    toast('Connected! Loading customers…');
+    await Promise.all([loadCustomers(), (async()=>{ S.completions = await api('getCompletions'); })()]);
+  } catch(e) {
+    toast('Connection failed: ' + e.message);
+  } finally { loading(false); }
+}
+
+function saveZips() {
+  CFG.zips = document.getElementById('cfg-zips').value;
+  toast('ZIP codes saved.');
+}
+
+async function doSyncStripe() {
+  if (!CFG.url) { toast('Configure connection first.'); return; }
+  if (!confirm('Sync customers from Stripe? This may take up to a minute.')) return;
+  loading(true);
+  try {
+    const r = await api('syncStripe');
+    localStorage.setItem('af_sync', new Date().toISOString());
+    document.getElementById('sync-info').textContent = 'Last sync: ' + new Date().toLocaleString();
+    toast(`Done: ${r.added} added, ${r.updated} updated (${r.total} total).`);
+    await loadCustomers();
+  } catch(e) {
+    toast('Sync failed: ' + e.message);
+  } finally { loading(false); }
+}
+
+// ============================================================
+// Init
+// ============================================================
+document.getElementById('search').addEventListener('input', e => {
+  S.search = e.target.value;
+  renderCustomers();
+});
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    S.filter = chip.dataset.f;
+    renderCustomers();
+  });
+});
+
+// ZIP auto-flag on modal ZIP field
+document.getElementById('f-zip').addEventListener('change', () => {
+  const zip = document.getElementById('f-zip').value.trim();
+  if (zip && !CFG.zips.includes(zip)) {
+    document.getElementById('f-ooa').checked = true;
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+(async function init() {
+  if (CFG.url) {
+    loading(true);
+    try {
+      const [customers, completions] = await Promise.all([
+        api('getCustomers'),
+        api('getCompletions'),
+      ]);
+      S.customers   = customers;
+      S.completions = completions;
+      renderCustomers();
+    } catch(e) {
+      toast('Could not load data: ' + e.message);
+      renderCustomers();
+    } finally { loading(false); }
+  } else {
+    renderCustomers();
+    switchTab('settings');
+  }
+  document.getElementById('fab').style.display = S.tab === 'customers' ? 'flex' : 'none';
+})();
+</script>
+</body>
+</html>

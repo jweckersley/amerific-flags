@@ -1,0 +1,17 @@
+{
+  "name": "Amerific Flags",
+  "short_name": "Amerific",
+  "description": "Customer & route manager for Amerific Flags",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#002868",
+  "theme_color": "#002868",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
