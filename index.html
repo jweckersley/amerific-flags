@@ -302,7 +302,7 @@
 const CFG = {
   get url()   { return localStorage.getItem('af_url')   || ''; },
   get token() { return localStorage.getItem('af_token') || ''; },
-  get zips()  { return (localStorage.getItem('af_zips') || '84020').split(',').map(z => z.trim()).filter(Boolean); },
+  get zips()  { return (localStorage.getItem('af_zips') || '84020').split(',').map(z => z.trim().substring(0, 5)).filter(Boolean); },
   set url(v)   { localStorage.setItem('af_url',   v.trim()); },
   set token(v) { localStorage.setItem('af_token', v.trim()); },
   set zips(v)  { localStorage.setItem('af_zips',  v); },
@@ -334,7 +334,7 @@ function firstWeekday(year, month, dow) {
   return d;
 }
 function lastWeekday(year, month, dow) {
-  const d = new Date(year, month + 1, 0); // last day of month
+  const d = new Date(year, month + 1, 0);
   while (d.getDay() !== dow) d.setDate(d.getDate() - 1);
   return d;
 }
@@ -521,7 +521,8 @@ async function saveForm() {
   if (!name) { toast('Name is required'); return; }
 
   const zip = document.getElementById('f-zip').value.trim();
-  const ooaByZip = zip && !CFG.zips.includes(zip);
+  const zip5 = zip.substring(0, 5);
+  const ooaByZip = zip5 && !CFG.zips.includes(zip5);
   const ooaManual = document.getElementById('f-ooa').checked;
 
   const existing = S.editId ? S.customers.find(c => c.id === S.editId) : null;
@@ -563,7 +564,6 @@ async function confirmDelete(id) {
   finally { loading(false); }
 }
 
-// Called from modal delete button
 function deleteCustomer() {
   if (S.editId) { closeModal(); confirmDelete(S.editId); }
 }
@@ -670,7 +670,6 @@ function renderRoute() {
 }
 
 async function toggleDone(customerId, done) {
-  // Optimistic update
   const existing = S.completions.find(c =>
     c.customerId === customerId &&
     c.holiday === S.holiday &&
@@ -684,7 +683,6 @@ async function toggleDone(customerId, done) {
     await api('setCompletion', { customerId, holiday: S.holiday, year: S.year, done });
   } catch(e) {
     toast('Save failed: ' + e.message);
-    // revert
     if (existing) existing.done = !done;
     else S.completions = S.completions.filter(c => !(c.customerId === customerId && c.holiday === S.holiday && String(c.year) === String(S.year)));
     renderRoute();
@@ -753,10 +751,9 @@ document.querySelectorAll('.chip').forEach(chip => {
   });
 });
 
-// ZIP auto-flag on modal ZIP field
 document.getElementById('f-zip').addEventListener('change', () => {
-  const zip = document.getElementById('f-zip').value.trim();
-  if (zip && !CFG.zips.includes(zip)) {
+  const zip5 = document.getElementById('f-zip').value.trim().substring(0, 5);
+  if (zip5 && !CFG.zips.includes(zip5)) {
     document.getElementById('f-ooa').checked = true;
   }
 });
