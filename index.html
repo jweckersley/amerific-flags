@@ -580,7 +580,7 @@ function textMsg(id, holidayKey) {
   const msg = `Hi ${firstName}, your Amerific Flags flag will be placed ${about}! Thanks for your support. 🇺🇸 — Amerific Flags`;
   const phone = c.phone.replace(/\D/g, '');
   const num = phone.length === 10 ? '+1' + phone : phone.length === 11 ? '+' + phone : phone;
-  window.open(`sms:${num}&body=${encodeURIComponent(msg)}`);
+  location.href = `sms:${num}?body=${encodeURIComponent(msg)}`;
 }
 
 // ============================================================
