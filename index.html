@@ -401,7 +401,7 @@ function toast(msg, ms = 2800) {
 function bool(v) { return v === true || v === 'true' || v === 'TRUE'; }
 
 function mapUrl(address, zip) {
-  const q = [address, zip ? zip.substring(0, 5) : '', 'UT'].filter(Boolean).join(' ');
+  const q = [address, zip ? String(zip).substring(0, 5) : '', 'UT'].filter(Boolean).join(' ');
   return 'https://maps.google.com/maps?q=' + encodeURIComponent(q);
 }
 
